@@ -66,7 +66,7 @@ boolean display_offline_mode_banner = false;
 RTC_DS3231 rtc;
 SdFat SD;
 
-#define MAX_SAMPLE_BUFFER_DEPTH (120) // 10 minutes @ 5 second resolution
+#define MAX_SAMPLE_BUFFER_DEPTH  (60) // 5 minutes @ 5 second resolution
 #define O3_SAMPLE_BUFFER          (0)
 #define A_PM1P0_SAMPLE_BUFFER     (1)
 #define A_PM2P5_SAMPLE_BUFFER     (2)
@@ -1745,7 +1745,7 @@ void initializeNewConfigSettings(void) {
             configInject(F("aqe\r"));
             in_config_mode = true;
         }
-        configInject(F("sampling 5, 60, 60\r"));
+        configInject(F("sampling 5, 300, 60\r"));
     }
 
 // the following two blocks of code are a 'hot-fix' to the slope calculation,
@@ -1762,6 +1762,15 @@ void initializeNewConfigSettings(void) {
         snprintf(command_buf, 127, "no2_sen %8.4f\r", sensitivity);
         configInject(command_buf);
         configInject(F("backup no2\r"));
+    }
+
+// if the stored sampling averaging interval is above 300, reduce it to 300
+    if(eeprom_read_word((uint16_t * ) EEPROM_AVERAGING_INTERVAL) > 300) {
+        if(!in_config_mode) {
+            configInject(F("aqe\r"));
+            in_config_mode = true;
+        }
+        configInject(F("sampling 5, 300, 60\r"));
     }
 
     if(in_config_mode) {
@@ -2744,7 +2753,7 @@ void restore(char * arg) {
         configInject(F("mqttprefix /orgs/wd/aqe/\r"));
         configInject(F("mqttsuffix enable\r"));
 
-        configInject(F("sampling 5, 600, 60\r")); // sample every 5 seconds, average over 10 minutes, report every minute
+        configInject(F("sampling 5, 300, 60\r")); // sample every 5 seconds, average over 5 minutes, report every minute
         configInject(F("restore particulate\r"));
         configInject(F("restore no2\r"));
         configInject(F("no2_negz 1\r"));
